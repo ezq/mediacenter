@@ -1,0 +1,238 @@
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    environment:
+      - CF_API_EMAIL=${CF_API_EMAIL}
+      - CF_API_KEY=${CF_API_KEY}
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+    command:
+      - --api=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.endpoint=unix:///var/run/docker.sock
+      - --providers.redis.endpoints=redis:6379
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.console.address=:8080
+      - --log.level=INFO
+      # Redirect to https
+      - --entryPoints.web.http.redirections.entryPoint.to=websecure
+      - --entryPoints.web.http.redirections.entryPoint.scheme=https
+      - --entryPoints.web.http.redirections.entrypoint.permanent=true
+      # Let's Encrypt
+      - --certificatesResolvers.letsencrypt.acme.email=${LE_EMAIL}
+      - --certificatesResolvers.letsencrypt.acme.storage=acme/acme.json
+      - --certificatesResolvers.letsencrypt.acme.dnsChallenge=true
+      - --certificatesResolvers.letsencrypt.acme.dnsChallenge.provider=cloudflare
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./volumes/traefik/config.yml:/config.yml
+      - ./volumes/traefik/acme:/acme
+      - ./volumes/traefik/logs:/logs
+      - ./volumes/traefik/dynamic:/dynamic
+    labels: 
+      - traefik.enable=true
+      - traefik.http.routers.thisproxylocal.rule=Host(`${TF_IP}`)
+      - traefik.http.routers.thisproxylocal.entryPoints=console,websecure
+      - traefik.http.routers.thisproxylocal.service=api@internal
+      - traefik.http.middlewares.admin.basicauth.users=${TF_BASIC_AUTH}
+      - traefik.http.routers.thisproxylocal.middlewares=admin
+      - traefik.http.services.thisproxytls.loadbalancer.server.port=8080
+      - traefik.http.routers.thisproxytls.rule=Host(`tf.${DOMAIN}`)
+      - traefik.http.routers.thisproxytls.entrypoints=websecure
+      - traefik.http.routers.thisproxytls.service=api@internal
+      - traefik.http.routers.thisproxytls.middlewares=admin
+      - traefik.http.routers.thisproxytls.tls.certresolver=letsencrypt
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+
+  redis:
+    image: redis
+    container_name: redis
+    ports:
+      - '6379:6379'
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+
+  sonarr:
+    image: linuxserver/sonarr
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+      - UMASK_SET=022
+    volumes:
+      - ./volumes/sonarr/data:/config
+      - ./media/tvshows:/tv
+      - ./downloads:/downloads
+    ports:
+      - 8989:8989
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.sonarr.rule=Host(`sr.${DOMAIN}`)
+      - traefik.http.routers.sonarr.entrypoints=websecure
+      - traefik.http.routers.sonarr.tls=true
+      - traefik.http.routers.sonarr.tls.certresolver=letsencrypt
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+
+  radarr:
+    image: linuxserver/radarr
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+      - UMASK=022
+    volumes:
+      - ./volumes/radarr/config:/config
+      - ./media/movies:/movies
+      - ./downloads:/downloads
+    ports:
+      - 7878:7878
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.radarr.rule=Host(`rr.${DOMAIN}`)
+      - traefik.http.routers.radarr.entrypoints=websecure
+      - traefik.http.routers.radarr.tls=true
+      - traefik.http.routers.radarr.tls.certresolver=letsencrypt
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+
+  bazarr:
+    image: linuxserver/bazarr
+    container_name: bazarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+    volumes:
+      - ./volumes/bazarr/config:/config
+      - ./media/movies:/movies
+      - ./media/tvshows:/tv
+    ports:
+      - 6767:6767
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+
+  prowlarr:
+    image: linuxserver/prowlarr
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+    volumes:
+      - ./volumes/prowlarr/config:/config
+      - ./downloads:/downloads
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      - LOG_LEVEL=info
+    ports:
+      - 8191:8191
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+
+  plex:
+    image: linuxserver/plex:latest
+    container_name: plex
+    network_mode: host
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - VERSION=docker
+    volumes:
+      - ./volumes/plex/library:/config
+      - ./media/tvshows:/tv
+      - ./media/movies:/movies
+      - ./media/other_media:/other
+      - ./media/other_movies:/other_movies
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+
+  transmission:
+    image: linuxserver/transmission
+      #image: transmission_test
+    container_name: transmission
+    depends_on:
+      - vpn-gateway
+    network_mode: service:vpn-gateway
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+    volumes:
+      - ./volumes/transmission/config:/config
+      - ./downloads:/downloads
+      - ./downloads/TransmissionWatchFolder:/watch
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+
+  vpn-gateway:
+    container_name: vpn-gateway
+    image: qmcgaw/gluetun
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - '/dev/net/tun:/dev/net/tun'
+    ports:
+      - 9091:9091/tcp
+      - 51413:51413/tcp
+      - 51413:51413/udp
+    volumes:
+      - ./volumes/vpn:/gluetun
+    environment:
+      - VPN_SERVICE_PROVIDER=protonvpn
+      - VPN_TYPE=openvpn
+      - OPENVPN_USER=${OPENVPN_USER}
+      - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
+      - SERVER_COUNTRIES=${VPN_COUNTRIES}
+      - TZ='${TIMEZONE}'
+      - UPDATER_PERIOD='24h'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+
+
