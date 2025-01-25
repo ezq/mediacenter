@@ -13,6 +13,7 @@ This repository contains a set of Docker-based services that form a complete med
 - [**Plex**](https://www.plex.tv): Media server for streaming movies, TV shows, and more.
 - [**Transmission**](https://transmissionbt.com): BitTorrent client for automated downloads.
 - [**VPN Gateway (Gluetun)**](https://github.com/qdm12/gluetun): VPN connection to ensure privacy and security.
+- [**Cloudflare-DDNS**](https://hub.docker.com/r/favonia/cloudflare-ddns): Dynamic DNS updates using Cloudflare.
 
 ## Prerequisites
 
@@ -87,6 +88,7 @@ mediacenter/
 
 - Ensure the required ports are open on your server.
 - SSL certificates are automatically generated with Let's Encrypt.
+- The Cloudflare-DDNS container ensures your subdomains always point to the correct IP.
 - You can adjust the values in the `docker-compose.yml` file according to your needs.
 
 ## Contributions

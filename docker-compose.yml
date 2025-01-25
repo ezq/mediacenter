@@ -54,6 +54,31 @@ services:
       options:
         max-size: "50m"
 
+  cloudflare-ddns:
+    image: favonia/cloudflare-ddns:latest
+    container_name: cloudflare-ddns
+    network_mode: host
+    restart: always
+    cap_add:
+      - SETUID
+      - SETGID
+    cap_drop:
+      - all
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+      - CF_API_TOKEN=${CF_DNS_API_TOKEN}
+      - IP4_DOMAINS=plex.${DOMAIN},pihole.${DOMAIN},rr.${DOMAIN},sr.${DOMAIN},wg.${DOMAIN},vw.${DOMAIN},pass.${DOMAIN},tf.${DOMAIN},${DOMAIN}
+      - PROXIED=true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+
   redis:
     image: redis
     container_name: redis
