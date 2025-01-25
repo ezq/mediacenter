@@ -10,7 +10,6 @@ sudo chown ${pi_user}:${pi_user} -R "${bkp_path}/backups"
 if ls ${bpk_path} | grep -w 'docker-compose.yml' >> /dev/null ; then
   echo "./docker-compose.yml" >list.txt
   echo ".env" >>list.txt
-  echo "./services/" >>list.txt
   echo "./volumes/" >>list.txt
   log_file=./backups/log_local.txt
   backup_file="${host_name}-$(date +"%Y-%m-%d_%H-%M").tar.gz"
