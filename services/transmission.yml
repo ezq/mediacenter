@@ -1,0 +1,21 @@
+services:
+  transmission:
+    image: linuxserver/transmission
+      #image: transmission_test
+    container_name: transmission
+    depends_on:
+      - vpn-gateway
+    network_mode: service:vpn-gateway
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+    volumes:
+      - ../volumes/transmission/config:/config
+      - ../downloads:/downloads
+      - ../downloads/TransmissionWatchFolder:/watch
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"

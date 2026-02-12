@@ -1,0 +1,50 @@
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    environment:
+      - CF_API_EMAIL=${CF_API_EMAIL}
+      - CF_API_KEY=${CF_API_KEY}
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+    command:
+      - --api=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.endpoint=unix:///var/run/docker.sock
+      #- --providers.redis.endpoints=redis:6379
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.console.address=:8080
+      - --log.level=INFO
+      # Redirect to https
+      - --entryPoints.web.http.redirections.entryPoint.to=websecure
+      - --entryPoints.web.http.redirections.entryPoint.scheme=https
+      - --entryPoints.web.http.redirections.entrypoint.permanent=true
+      # Let's Encrypt
+      - --certificatesResolvers.letsencrypt.acme.email=${LE_EMAIL}
+      - --certificatesResolvers.letsencrypt.acme.storage=acme/acme.json
+      - --certificatesResolvers.letsencrypt.acme.dnsChallenge=true
+      - --certificatesResolvers.letsencrypt.acme.dnsChallenge.provider=cloudflare
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ../volumes/traefik/config.yml:/config.yml
+      - ../volumes/traefik/acme:/acme
+      - ../volumes/traefik/logs:/logs
+      - ../volumes/traefik/dynamic:/dynamic
+    labels: 
+      - traefik.enable=true
+      - traefik.http.routers.thisproxylocal.rule=Host(`${TF_IP}`)
+      - traefik.http.routers.thisproxylocal.entryPoints=console,websecure
+      - traefik.http.routers.thisproxylocal.service=api@internal
+      - traefik.http.middlewares.admin.basicauth.users=${TF_BASIC_AUTH}
+      - traefik.http.routers.thisproxylocal.middlewares=admin
+      - traefik.http.services.thisproxytls.loadbalancer.server.port=8080
+      - traefik.http.routers.thisproxytls.rule=Host(`tf.${DOMAIN}`)
+      - traefik.http.routers.thisproxytls.entrypoints=websecure
+      - traefik.http.routers.thisproxytls.service=api@internal
+      - traefik.http.routers.thisproxytls.middlewares=admin
+      - traefik.http.routers.thisproxytls.tls.certresolver=letsencrypt

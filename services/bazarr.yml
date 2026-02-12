@@ -1,0 +1,19 @@
+services:
+  bazarr:
+    image: linuxserver/bazarr
+    container_name: bazarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+    volumes:
+      - ../volumes/bazarr/config:/config
+      - ../media/movies:/movies
+      - ../media/tvshows:/tv
+    ports:
+      - 6767:6767
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"

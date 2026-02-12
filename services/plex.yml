@@ -1,0 +1,20 @@
+services:
+  plex:
+    image: linuxserver/plex:latest
+    container_name: plex
+    network_mode: host
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - VERSION=docker
+    volumes:
+      - ../volumes/plex/library:/config
+      - ../media/tvshows:/tv
+      - ../media/movies:/movies
+      - ../media/other_media:/other
+      - ../media/other_movies:/other_movies
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"

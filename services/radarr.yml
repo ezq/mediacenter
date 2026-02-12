@@ -1,0 +1,26 @@
+services:
+  radarr:
+    image: linuxserver/radarr
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+      - UMASK=022
+    volumes:
+      - ../volumes/radarr/config:/config
+      - ../media/movies:/movies
+      - ../downloads:/downloads
+    ports:
+      - 7878:7878
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.radarr.rule=Host(`rr.${DOMAIN}`)
+      - traefik.http.routers.radarr.entrypoints=websecure
+      - traefik.http.routers.radarr.tls=true
+      - traefik.http.routers.radarr.tls.certresolver=letsencrypt
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"

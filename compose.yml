@@ -1,0 +1,12 @@
+include:
+  - services/traefik.yml
+  - services/cloudflare-ddns.yml
+  - services/sonarr.yml
+  - services/radarr.yml
+  - services/bazarr.yml
+  - services/unpackerr.yml
+  - services/prowlarr.yml
+  - services/flaresolverr.yml
+  - services/plex.yml
+  - services/transmission.yml
+  - services/vpn-gateway.yml

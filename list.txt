@@ -1,0 +1,6 @@
+./compose.yml
+.env
+./volumes/
+./vpn/
+./services/
+./scripts/
